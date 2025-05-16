@@ -45,7 +45,7 @@ runs:
         if: success() && runner.os == 'Windows'
         shell: pwsh
         run: |
-          $fileName = "flyway-commandline-${{ env.flyway_version }}-windows-x64.zip"
+          $fileName = "flyway-commandline-$($env:flyway_version)-windows-x64.zip"
 
         "flyway_filename=$fileName" >> $env:GITHUB_ENV
 
