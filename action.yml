@@ -74,32 +74,45 @@ runs:
       run: |
         $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-${{ env.flyway_version }}"
 
-        if: success() && runner.os == 'Linux'
-        shell: pwsh
-        run: |
-          $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
+        if($env:RUNNER_OS -eq 'Linux') {
+          if (-not (Test-Path $installDir)) {
+            New-Item -ItemType Directory -Path $installDir
 
-          Write-Host "Extracting Flyway CLI to $installDir."
-          tar -xzf $outFile -C $installDir
+            $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
 
-          sudo ln -sf "$installDir/flyway" /usr/local/bin/flyway
+            Write-Host "Extracting Flyway CLI to $installDir."
+            tar -xzf $outFile -C $installDir
 
-        if: success() && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
-
-          Write-Host "Extracted Flyway CLI to $installDir."
-          Expand-Archive -Path $outFile -DestinationPath $installDir -Force
-
-          $result = .\scripts\Update-EnvPathVariable.ps1 -InstallDir $installDir
-
-          if ($result) {
-            Write-Host "Flyway CLI added to PATH successfully!"
-          } else {
-            Write-Error "Failed to add Flyway CLI to PATH."
-            exit 1
+            sudo ln -sf "$installDir/flyway" /usr/local/bin/flyway
           }
+        }
+
+        if($env:RUNNER_OS -eq 'Windows') {
+          if (-not (Test-Path $installDir)) {
+            New-Item -ItemType Directory -Path $installDir
+
+            $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
+
+            Write-Host "Extracted Flyway CLI to $installDir."
+            Expand-Archive -Path $outFile -DestinationPath $installDir -Force
+
+            $result = .\scripts\Update-EnvPathVariable.ps1 -InstallDir $installDir
+
+            if ($result) {
+              Write-Host "Flyway CLI added to PATH successfully!"
+            } else {
+              Write-Error "Failed to add Flyway CLI to PATH."
+              exit 1
+            }
+          }
+        }
+
+        if ($result) {
+          Write-Host "Flyway CLI added to PATH successfully!"
+        } else {
+          Write-Error "Failed to add Flyway CLI to PATH."
+          exit 1
+        }
 
     - name: 'Test Flyway CLI'
       shell: pwsh
