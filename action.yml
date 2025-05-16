@@ -72,64 +72,66 @@ runs:
     - name: 'Extract Flyway CLI'
       shell: pwsh
       run: |
-        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-${{ env.flyway_version }}"
+        # Set up the installation directory
+        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-$env:flyway_version"
 
+        # If the runner is Linux, extract the tar.gz file
         if($env:RUNNER_OS -eq 'Linux') {
+          # Check if the installation directory exists, if not create it
           if (-not (Test-Path $installDir)) {
             New-Item -ItemType Directory -Path $installDir
-
-            $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
-
-            Write-Host "Extracting Flyway CLI to $installDir."
-            tar -xzf $outFile -C $installDir
-
-            sudo ln -sf "$installDir/flyway" /usr/local/bin/flyway
           }
+
+          # Set the output file path
+          $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
+
+          # Extract the tar.gz file
+          Write-Host "Extracting Flyway CLI to $installDir."
+          tar -xzf $outFile -C $installDir
+
+          # Create a symbolic link to the flyway command
+          sudo ln -sf "$installDir/flyway" /usr/local/bin/flyway
         }
 
+        # If the runner is Windows, extract the zip file
         if($env:RUNNER_OS -eq 'Windows') {
+          # Check if the installation directory exists, if not create it
           if (-not (Test-Path $installDir)) {
             New-Item -ItemType Directory -Path $installDir
-
-            $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
-
-            Write-Host "Extracted Flyway CLI to $installDir."
-            Expand-Archive -Path $outFile -DestinationPath $installDir -Force
-
-            $result = .\scripts\Update-EnvPathVariable.ps1 -InstallDir $installDir
-
-            if ($result) {
-              Write-Host "Flyway CLI added to PATH successfully!"
-            } else {
-              Write-Error "Failed to add Flyway CLI to PATH."
-              exit 1
-            }
           }
-        }
 
-        if ($result) {
-          Write-Host "Flyway CLI added to PATH successfully!"
-        } else {
-          Write-Error "Failed to add Flyway CLI to PATH."
-          exit 1
+          # Set the output file path
+          $outFile = Join-Path $env:RUNNER_TEMP $env:flyway_filename
+
+          # Extract the zip file
+          Write-Host "Extracted Flyway CLI to $installDir."
+          Expand-Archive -Path $outFile -DestinationPath $installDir -Force
+
+          # Add the Flyway CLI to the PATH environment variable
+          $result = . ${{GITHUB.ACTION_PATH}}/scripts/Update-EnvPathVariable.ps1 -InstallDir $installDir
+
+          # Check if the PATH variable was updated successfully
+          if ($result) {
+            Write-Host "Flyway CLI added to PATH successfully!"
+          } else {
+            Write-Error "Failed to add Flyway CLI to PATH."
+            exit 1
+          }
         }
 
     - name: 'Test Flyway CLI'
       shell: pwsh
       run: |
-        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-${{ env.flyway_version }}"
-
-        if: success() && runner.os == 'Linux'
-        shell: pwsh
-        run: |
+        # Check if the Flyway CLI is installed and accessible
+        if($env:RUNNER_OS -eq 'Linux') {
           $result = flyway --version
+        }
 
-        if: success() && runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $result = flyway --version
+        if($env:RUNNER_OS -eq 'Windows') {
+          $result = flyway -v
+        }
 
-
+        # Check if the command was successful
         if ($result) {
           Write-Host "Flyway CLI installed successfully!"
           Write-Host "$result"
