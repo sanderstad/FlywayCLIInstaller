@@ -17,7 +17,6 @@ runs:
     - name: 'Get Flyway CLI version'
       shell: pwsh
       run: |
-        dir $GITHUB_WORKSPACE/scripts/ > $null 2>&1
 
         $flywayInfo = ./${$env:GITHUB_ACTION_PATH}/scripts/Get-LatestFlywayCLIVersion.ps1
 
