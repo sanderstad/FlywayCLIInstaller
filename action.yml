@@ -17,13 +17,13 @@ runs:
     - name: 'Get Flyway CLI version'
       shell: pwsh
       run: |
-        #gci ${{GITHUB.ACTION_PATH}} -recurse
+        #gci ${{GITHUB.ACTION_PATH}} -recurse -bla
 
         $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1
 
         $flywayInfo
 
-        if(${{inputs.version}} -eq 'latest') {
+        if("${{inputs.version}}" -eq 'latest') {
           $version = $flywayInfo.LatestVersion
         } else{
           $version = $flywayInfo.Versions | Where-Object { $_.Version -eq $version }
