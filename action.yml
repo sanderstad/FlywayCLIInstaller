@@ -40,8 +40,7 @@ runs:
         if: success() && runner.os == 'Linux'
         shell: pwsh
         run: |
-
-          $fileName = "flyway-commandline-${{ env.flyway_version }}-linux-x64.tar.gz"
+          $fileName = "flyway-commandline-${$env:flyway_version}-linux-x64.tar.gz"
 
         if: success() && runner.os == 'Windows'
         shell: pwsh
@@ -50,7 +49,7 @@ runs:
 
         "flyway_filename=$fileName" >> $env:GITHUB_ENV
 
-        $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/${{ env.flyway_version }}/$installFile"
+        $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/${$env:flyway_version}/$installFile"
 
         try {
           $tempPath = $env:RUNNER_TEMP
