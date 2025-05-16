@@ -23,7 +23,7 @@ runs:
 
         $flywayInfo
 
-        if(${{input.version}} -eq 'latest') {
+        if(${{inputs.version}} -eq 'latest') {
           $version = $flywayInfo.LatestVersion
         } else{
           $version = $flywayInfo.Versions | Where-Object { $_.Version -eq $version }
