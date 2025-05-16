@@ -19,7 +19,7 @@ runs:
       run: |
         gci ${{GITHUB.ACTION_PATH}} -recurse
 
-        $flywayInfo = ./${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1
+        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1
 
         if($version -eq 'latest') {
           $version = $flywayInfo.LatestVersion
