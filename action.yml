@@ -17,7 +17,7 @@ runs:
     - name: 'Get Flyway CLI version'
       shell: pwsh
       run: |
-        $flywayInfo = .\scripts\Get-LatestFlywayCLIVersion.ps1
+        $flywayInfo = ./scripts/Get-LatestFlywayCLIVersion.ps1
 
         if($version -eq 'latest') {
           $version = $flywayInfo.LatestVersion
