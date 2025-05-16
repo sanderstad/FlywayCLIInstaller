@@ -1,0 +1,127 @@
+name: 'FlywayCLIInstaller'
+description: 'Install Flyway CLI'
+author: 'Sander Stad'
+branding:
+  icon: 'terminal'
+  color: 'blue'
+
+inputs:
+  version:
+    description: 'The version of Flyway to install'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Get Flyway CLI version'
+      shell: pwsh
+      run: |
+        $flywayInfo = .\scripts\Get-LatestFlywayCLIVersion.ps1
+
+        if($version -eq 'latest') {
+          $version = $flywayInfo.LatestVersion
+        } else{
+          $version = $flywayInfo.Versions | Where-Object { $_.Version -eq $version }
+          if($version -eq $null) {
+            Write-Error "Version $version not found. Available versions: $($flywayInfo.Versions.Version)"
+          }
+        }
+
+        "flyway_version=$version" >> $env:GITHUB_ENV
+
+    - name: Download Flyway CLI
+      shell: bash
+      run: |
+        if: success() && runner.os == 'Linux'
+        shell: pwsh
+        run: |
+
+          $fileName = "flyway-commandline-${{ env.flyway_version }}-linux-x64.tar.gz"
+
+        if: success() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $fileName = "flyway-commandline-${{ env.flyway_version }}-windows-x64.zip"
+
+        "flyway_filename=$fileName" >> $env:GITHUB_ENV
+
+        $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/${{ env.flyway_version }}/$installFile"
+
+        try {
+          $tempPath = $env:RUNNER_TEMP
+
+          if (-not (Test-Path $tempPath)) {
+            New-Item -ItemType Directory -Path $tempPath
+          }
+
+          $outFile = Join-Path $tempPath $fileName
+
+          Invoke-WebRequest -Uri $url -OutFile $outFile
+
+          Write-Host "Downloaded Flyway CLI for Windows to $outFile."
+        } catch {
+          Write-Error "Failed to download Flyway CLI: $_"
+          exit 1
+        }
+
+    - name: 'Extract Flyway CLI'
+      shell: pwsh
+      run: |
+        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-${{ env.flyway_version }}"
+
+        if: success() && runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
+
+          Write-Host "Extracting Flyway CLI to $installDir."
+          tar -xzf $outFile -C $installDir
+
+          sudo ln -sf "$installDir/flyway" /usr/local/bin/flyway
+
+        if: success() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
+
+          Write-Host "Extracted Flyway CLI to $installDir."
+          Expand-Archive -Path $outFile -DestinationPath $installDir -Force
+
+          $result = .\scripts\Update-EnvPathVariable.ps1 -InstallDir $installDir
+
+          if ($result) {
+            Write-Host "Flyway CLI added to PATH successfully!"
+          } else {
+            Write-Error "Failed to add Flyway CLI to PATH."
+            exit 1
+          }
+
+    - name: 'Test Flyway CLI'
+      shell: pwsh
+      run: |
+        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-${{ env.flyway_version }}"
+
+        if: success() && runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          $result = flyway --version
+
+        if: success() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $result = flyway --version
+
+
+        if ($result) {
+          Write-Host "Flyway CLI installed successfully!"
+          Write-Host "$result"
+        } else {
+          Write-Error "Failed to install Flyway CLI."
+          exit 1
+        }
+
+
+
+
+
