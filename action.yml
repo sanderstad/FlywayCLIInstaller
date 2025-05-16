@@ -73,7 +73,7 @@ runs:
       shell: pwsh
       run: |
         # Set up the installation directory
-        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-$env:flyway_version"
+        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-$($env:flyway_version)"
 
         # If the runner is Linux, extract the tar.gz file
         if($env:RUNNER_OS -eq 'Linux') {
