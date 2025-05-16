@@ -83,14 +83,21 @@ runs:
           }
 
           # Set the output file path
-          $outFile = Join-Path $env:RUNNER_TEMP ${{ env.flyway_filename }}
+          $outFile = Join-Path $env:RUNNER_TEMP $env:flyway_filename
 
           # Extract the tar.gz file
           Write-Host "Extracting Flyway CLI to $installDir."
           tar -xzf $outFile -C $installDir
 
-          # Create a symbolic link to the flyway command
-          sudo ln -sf "$installDir/flyway" /usr/local/bin/flyway
+          # Find the actual flyway executable path
+          $flywayExe = Get-ChildItem -Path $installDir -Recurse -Filter flyway | Where-Object { -not $_.PSIsContainer } | Select-Object -First 1
+
+          if ($flywayExe) {
+            sudo ln -sf $flywayExe.FullName /usr/local/bin/flyway
+          } else {
+            Write-Error "Could not find the flyway executable after extraction."
+            exit 1
+          }
         }
 
         # If the runner is Windows, extract the zip file
