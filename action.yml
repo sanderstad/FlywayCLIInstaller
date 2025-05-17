@@ -132,10 +132,12 @@ runs:
         # Check if the Flyway CLI is installed and accessible
         if($env:RUNNER_OS -eq 'Linux') {
           $result = flyway --version
+          flyway --version
         }
 
         if($env:RUNNER_OS -eq 'Windows') {
           $result = flyway -v
+          flyway -v
         }
 
         # Check if the command was successful
