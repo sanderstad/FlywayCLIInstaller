@@ -75,16 +75,16 @@ runs:
         # Set up the installation directory
         $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-$($env:flyway_version)"
 
+        # Check if the installation directory exists, if not create it
+        if (-not (Test-Path $installDir)) {
+          New-Item -ItemType Directory -Path $installDir
+        }
+
+        # Set the output file path
+        $outFile = Join-Path $env:RUNNER_TEMP $env:flyway_filename
+
         # If the runner is Linux, extract the tar.gz file
         if($env:RUNNER_OS -eq 'Linux') {
-          # Check if the installation directory exists, if not create it
-          if (-not (Test-Path $installDir)) {
-            New-Item -ItemType Directory -Path $installDir
-          }
-
-          # Set the output file path
-          $outFile = Join-Path $env:RUNNER_TEMP $env:flyway_filename
-
           # Extract the tar.gz file
           Write-Host "Extracting Flyway CLI to $installDir."
           tar -xzf $outFile -C $installDir
@@ -102,14 +102,6 @@ runs:
 
         # If the runner is Windows, extract the zip file
         if($env:RUNNER_OS -eq 'Windows') {
-          # Check if the installation directory exists, if not create it
-          if (-not (Test-Path $installDir)) {
-            New-Item -ItemType Directory -Path $installDir
-          }
-
-          # Set the output file path
-          $outFile = Join-Path $env:RUNNER_TEMP $env:flyway_filename
-
           # Extract the zip file
           Write-Host "Extracted Flyway CLI to $installDir."
           Expand-Archive -Path $outFile -DestinationPath $installDir -Force
