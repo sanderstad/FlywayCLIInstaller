@@ -123,11 +123,10 @@ runs:
         "flyway.filename=$($flyway_path)" >> $env:GITHUB_ENV
         "flyway.version=$($env:flyway_version)" >> $env:GITHUB_ENV
 
-    - name: 'Test Flyway CLI'
-      shell: pwsh
+    - name: Test Flyway CLI (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
       run: |
-
-        # Check if the Flyway CLI is installed and accessible
         if($env:RUNNER_OS -eq 'Linux') {
           # Validate Flyway installation
           if flyway --version; then
@@ -138,6 +137,10 @@ runs:
           fi
         }
 
+    - name: 'Test Flyway CLI (Windows)'
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
         if($env:RUNNER_OS -eq 'Windows') {
           # Validate Flyway installation
           try {
