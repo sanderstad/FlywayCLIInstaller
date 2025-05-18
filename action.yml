@@ -118,6 +118,8 @@ runs:
           }
         }
 
+        flyway --version
+
     - name: 'Test Flyway CLI'
       shell: pwsh
       run: |
