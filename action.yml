@@ -129,22 +129,36 @@ runs:
 
         # Check if the Flyway CLI is installed and accessible
         if($env:RUNNER_OS -eq 'Linux') {
-          $result = flyway --version
-          flyway --version
+          # Validate Flyway installation
+          if flyway --version; then
+            echo "Flyway is successfully installed and running version $(flyway --version | grep -Eo 'Flyway (Community|Pro|Enterprise|Teams) Edition [0-9]+\.[0-9]+\.[0-9]+' | awk '{print $4}')."
+          else
+            echo "Flyway installation failed. Please check for issues."
+            exit 1  # Exit with failure status (non-zero) if Flyway isn't working
+          fi
         }
 
         if($env:RUNNER_OS -eq 'Windows') {
-          $result = flyway -v
-          flyway -v
-        }
-
-        # Check if the command was successful
-        if ($result) {
-          Write-Host "Flyway CLI installed successfully!"
-          Write-Host "$result"
-        } else {
-          Write-Error "Failed to install Flyway CLI."
-          exit 1
+          # Validate Flyway installation
+          try {
+              $flywayVersionOutput = flyway -v 2>&1
+              if ($LASTEXITCODE -eq 0) {
+                  # Extract the version number using regex
+                  if ($flywayVersionOutput -match 'Flyway (Community|Pro|Enterprise|Teams) Edition ([0-9]+\.[0-9]+\.[0-9]+)') {
+                      $edition = $matches[1]
+                      $version = $matches[2]
+                      Write-Host "Flyway is successfully installed and running version $version ($edition Edition)."
+                  } else {
+                      Write-Host "Flyway is installed, but could not parse version information."
+                  }
+              } else {
+                  Write-Error "Flyway installation failed. Please check for issues."
+                  exit 1
+              }
+          } catch {
+              Write-Error "Flyway installation failed. Please check for issues."
+              exit 1
+          }
         }
 
 
