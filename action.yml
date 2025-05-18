@@ -118,13 +118,14 @@ runs:
           }
         }
 
-    - name: 'Test Flyway CLI'
-      shell: pwsh
-      run: |
         # Set the Flyway environment variables
         $flyway_path = Join-Path $installDir "flyway"
         "flyway.filename=$($flyway_path)" >> $env:GITHUB_ENV
         "flyway.version=$($env:flyway_version)" >> $env:GITHUB_ENV
+
+    - name: 'Test Flyway CLI'
+      shell: pwsh
+      run: |
 
         # Check if the Flyway CLI is installed and accessible
         if($env:RUNNER_OS -eq 'Linux') {
