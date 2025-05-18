@@ -38,14 +38,14 @@ runs:
       if: runner.os == 'Linux'
       shell: pwsh
       run: |
-        $fileName = "flyway-commandline-$env:flyway_version-linux-x64.tar.gz"
+        $fileName = "flyway-commandline-$($env:flyway_version)-linux-x64.tar.gz"
         "flyway_filename=$fileName" >> $env:GITHUB_ENV
 
     - name: Set Flyway CLI filename (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        $fileName = "flyway-commandline-$env:flyway_version-windows-x64.zip"
+        $fileName = "flyway-commandline-$($env:flyway_version)-windows-x64.zip"
         "flyway_filename=$fileName" >> $env:GITHUB_ENV
 
     - name: Download Flyway CLI
@@ -77,7 +77,7 @@ runs:
 
         # Check if the installation directory exists, if not create it
         if (-not (Test-Path $installDir)) {
-          New-Item -ItemType Directory -Path $installDir
+          $null = New-Item -ItemType Directory -Path $installDir
         }
 
         # Set the output file path
