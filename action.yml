@@ -32,27 +32,27 @@ runs:
           }
         }
 
-        "flyway_version=$version" >> $env:GITHUB_ENV
+        "flwy_version=$version" >> $env:GITHUB_ENV
 
     - name: Set Flyway CLI filename (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
       run: |
-        $fileName = "flyway-commandline-$($env:flyway_version)-linux-x64.tar.gz"
+        $fileName = "flyway-commandline-$($env:flwy_version)-linux-x64.tar.gz"
         "flyway_filename=$fileName" >> $env:GITHUB_ENV
 
     - name: Set Flyway CLI filename (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        $fileName = "flyway-commandline-$($env:flyway_version)-windows-x64.zip"
+        $fileName = "flyway-commandline-$($env:flwy_version)-windows-x64.zip"
         "flyway_filename=$fileName" >> $env:GITHUB_ENV
 
     - name: Download Flyway CLI
       shell: pwsh
       run: |
         $fileName = $env:flyway_filename
-        $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/$($env:flyway_version)/$fileName"
+        $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/$($env:flwy_version)/$fileName"
         $tempPath = $env:RUNNER_TEMP
 
         if (-not (Test-Path $tempPath)) {
@@ -73,7 +73,7 @@ runs:
       shell: pwsh
       run: |
         # Set up the installation directory
-        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-$($env:flyway_version)"
+        $installDir = Join-Path $env:GITHUB_WORKSPACE "flyway-$($env:flwy_version)"
 
         # Check if the installation directory exists, if not create it
         if (-not (Test-Path $installDir)) {
@@ -119,9 +119,9 @@ runs:
         }
 
         # Set the Flyway environment variables
-        $flyway_path = Join-Path $installDir "flyway"
-        "flyway.filename=$($flyway_path)" >> $env:GITHUB_ENV
-        "flyway.version=$($env:flyway_version)" >> $env:GITHUB_ENV
+        #$flyway_path = Join-Path $installDir "flyway"
+        #"flyway.filename=$($flyway_path)" >> $env:GITHUB_ENV
+        #"flyway.version=$($env:flwy_version)" >> $env:GITHUB_ENV
 
     - name: Test Flyway CLI (Linux)
       if: runner.os == 'Linux'
