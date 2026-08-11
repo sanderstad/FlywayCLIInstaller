@@ -148,7 +148,7 @@ runs:
           Expand-Archive -Path $outFile -DestinationPath $installDir -Force
 
           # Add the Flyway CLI to the PATH environment variable
-          $result = . ${{GITHUB.ACTION_PATH}}/scripts/Update-EnvPathVariable.ps1 -InstallDir $installDir
+          $result = . ${{GITHUB.ACTION_PATH}}/scripts/Update-EnvPathVariable.ps1 -FlywayInstallDirectory $installDir
 
           # Check if the PATH variable was updated successfully
           if ($result) {
