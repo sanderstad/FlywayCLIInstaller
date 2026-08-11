@@ -21,11 +21,11 @@ Supports both Linux and Windows environments.
 
 ## Inputs
 
-| Name                 | Description                                                                          | Required | Default |
-|----------------------|---------------------------------------------------------------------------------------|----------|---------|
-| version              | Flyway CLI version to install                                                        | false    | latest  |
-| retry-count          | Number of attempts for network calls to Red Gate (metadata fetch and CLI download)  | false    | 3       |
-| retry-delay-seconds  | Delay in seconds between retry attempts for network calls                           | false    | 5       |
+| Name                | Description                                                                        | Required | Default |
+| ------------------- | ---------------------------------------------------------------------------------- | -------- | ------- |
+| version             | Flyway CLI version to install                                                      | false    | latest  |
+| retry-count         | Number of attempts for network calls to Red Gate (metadata fetch and CLI download) | false    | 3       |
+| retry-delay-seconds | Delay in seconds between retry attempts for network calls                          | false    | 5       |
 
 ## Example Workflow
 
