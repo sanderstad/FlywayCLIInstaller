@@ -24,24 +24,33 @@ runs:
   steps:
     - name: 'Get Flyway CLI version'
       shell: pwsh
+      env:
+        FLWY_VERSION_INPUT: ${{ inputs.version }}
+        FLWY_RETRY_COUNT: ${{ inputs.retry-count }}
+        FLWY_RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
       run: |
         #gci ${{GITHUB.ACTION_PATH}} -recurse -bla
 
-        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1 -RetryCount ${{ inputs.retry-count }} -RetryDelaySeconds ${{ inputs.retry-delay-seconds }}
+        $retryCount = [int]$env:FLWY_RETRY_COUNT
+        $retryDelaySeconds = [int]$env:FLWY_RETRY_DELAY_SECONDS
+
+        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1 -RetryCount $retryCount -RetryDelaySeconds $retryDelaySeconds
 
         if ($null -eq $flywayInfo) {
-          Write-Error "Failed to retrieve Flyway CLI version information after ${{ inputs.retry-count }} attempts."
+          Write-Error "Failed to retrieve Flyway CLI version information after $retryCount attempts."
           exit 1
         }
 
         $flywayInfo
 
-        if("${{inputs.version}}" -eq 'latest') {
+        $requestedVersion = $env:FLWY_VERSION_INPUT
+        if ($requestedVersion -eq 'latest') {
           $version = $flywayInfo.LatestVersion
-        } else{
-          $version = $flywayInfo.Versions | Where-Object { $_.Version -eq $version }
-          if($version -eq $null) {
-            Write-Error "Version $version not found. Available versions: $($flywayInfo.Versions.Version)"
+        } else {
+          $version = $flywayInfo.AllVersions | Where-Object { $_ -eq $requestedVersion }
+          if ($null -eq $version) {
+            Write-Error "Version $requestedVersion not found. Available versions: $($flywayInfo.AllVersions -join ', ')"
+            exit 1
           }
         }
 
@@ -63,6 +72,9 @@ runs:
 
     - name: Download Flyway CLI
       shell: pwsh
+      env:
+        FLWY_RETRY_COUNT: ${{ inputs.retry-count }}
+        FLWY_RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
       run: |
         $fileName = $env:flwy_filename
         $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/$($env:flwy_version)/$fileName"
@@ -74,8 +86,8 @@ runs:
 
         $outFile = Join-Path $tempPath $fileName
 
-        $maxAttempts = [int]"${{ inputs.retry-count }}"
-        $delaySeconds = [int]"${{ inputs.retry-delay-seconds }}"
+        $maxAttempts = [int]$env:FLWY_RETRY_COUNT
+        $delaySeconds = [int]$env:FLWY_RETRY_DELAY_SECONDS
         $attempt = 0
         $success = $false
 
