@@ -207,8 +207,13 @@ runs:
             Write-Host "flyway -v exit code: $LASTEXITCODE"
 
             if ($LASTEXITCODE -eq 0) {
+                # -match against an array only returns the matching elements
+                # and does NOT populate $matches; join to a single string
+                # first so the capture groups below are actually available.
+                $flywayVersionText = $flywayVersionOutput -join "`n"
+
                 # Extract the version number using regex
-                if ($flywayVersionOutput -match 'Flyway (Community|Pro|Enterprise|Teams) Edition ([0-9]+\.[0-9]+\.[0-9]+)') {
+                if ($flywayVersionText -match 'Flyway (Community|Pro|Enterprise|Teams) Edition ([0-9]+\.[0-9]+\.[0-9]+)') {
                     $edition = $matches[1]
                     $version = $matches[2]
                     Write-Host "Flyway is successfully installed and running version $version ($edition Edition)."
