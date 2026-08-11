@@ -1,20 +1,50 @@
 param(
     [Parameter(Mandatory = $false)]
-    [string]$MetadataUrl = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/maven-metadata.xml"
+    [string]$MetadataUrl = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/maven-metadata.xml",
+
+    [Parameter(Mandatory = $false)]
+    [int]$RetryCount = 3,
+
+    [Parameter(Mandatory = $false)]
+    [int]$RetryDelaySeconds = 5
 )
 
 function Get-LatestFlywayCLIVersion {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
-        [string]$MetadataUrl
+        [string]$MetadataUrl,
+
+        [Parameter(Mandatory = $false)]
+        [int]$RetryCount = 3,
+
+        [Parameter(Mandatory = $false)]
+        [int]$RetryDelaySeconds = 5
     )
 
-    try {
-        # Download the maven-metadata.xml file
-        $webClient = New-Object System.Net.WebClient
-        $metadataXml = $webClient.DownloadString($MetadataUrl)
+    $metadataXml = $null
+    $attempt = 0
 
+    while ($attempt -lt $RetryCount -and $null -eq $metadataXml) {
+        $attempt++
+        try {
+            $webClient = New-Object System.Net.WebClient
+            $metadataXml = $webClient.DownloadString($MetadataUrl)
+        }
+        catch {
+            Write-Warning "Attempt $attempt of $RetryCount to download Maven metadata failed: $_"
+            if ($attempt -lt $RetryCount) {
+                Start-Sleep -Seconds $RetryDelaySeconds
+            }
+        }
+    }
+
+    if ($null -eq $metadataXml) {
+        Write-Error "Failed to retrieve or parse the Maven metadata after $RetryCount attempts."
+        return $null
+    }
+
+    try {
         # Load the XML content
         $metadata = [xml]$metadataXml
 
@@ -58,4 +88,4 @@ function Get-LatestFlywayCLIVersion {
     }
 }
 
-Get-LatestFlywayCLIVersion -MetadataUrl $MetadataUrl
+Get-LatestFlywayCLIVersion -MetadataUrl $MetadataUrl -RetryCount $RetryCount -RetryDelaySeconds $RetryDelaySeconds

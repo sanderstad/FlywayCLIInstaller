@@ -1,0 +1,22 @@
+name: Smoke test
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+jobs:
+  smoke-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Flyway CLI
+        uses: ./
+        with:
+          version: 'latest'
+          retry-count: '2'
+          retry-delay-seconds: '1'

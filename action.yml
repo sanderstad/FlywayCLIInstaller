@@ -10,25 +10,47 @@ inputs:
     description: 'The version of Flyway to install'
     required: false
     default: 'latest'
+  retry-count:
+    description: 'Number of attempts for network calls to Red Gate (metadata fetch and CLI download) before failing'
+    required: false
+    default: '3'
+  retry-delay-seconds:
+    description: 'Delay in seconds between retry attempts for network calls'
+    required: false
+    default: '5'
 
 runs:
   using: 'composite'
   steps:
     - name: 'Get Flyway CLI version'
       shell: pwsh
+      env:
+        FLWY_VERSION_INPUT: ${{ inputs.version }}
+        FLWY_RETRY_COUNT: ${{ inputs.retry-count }}
+        FLWY_RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
       run: |
         #gci ${{GITHUB.ACTION_PATH}} -recurse -bla
 
-        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1
+        $retryCount = [int]$env:FLWY_RETRY_COUNT
+        $retryDelaySeconds = [int]$env:FLWY_RETRY_DELAY_SECONDS
+
+        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1 -RetryCount $retryCount -RetryDelaySeconds $retryDelaySeconds
+
+        if ($null -eq $flywayInfo) {
+          Write-Error "Failed to retrieve Flyway CLI version information after $retryCount attempts."
+          exit 1
+        }
 
         $flywayInfo
 
-        if("${{inputs.version}}" -eq 'latest') {
+        $requestedVersion = $env:FLWY_VERSION_INPUT
+        if ($requestedVersion -eq 'latest') {
           $version = $flywayInfo.LatestVersion
-        } else{
-          $version = $flywayInfo.Versions | Where-Object { $_.Version -eq $version }
-          if($version -eq $null) {
-            Write-Error "Version $version not found. Available versions: $($flywayInfo.Versions.Version)"
+        } else {
+          $version = $flywayInfo.AllVersions | Where-Object { $_ -eq $requestedVersion }
+          if ($null -eq $version) {
+            Write-Error "Version $requestedVersion not found. Available versions: $($flywayInfo.AllVersions -join ', ')"
+            exit 1
           }
         }
 
@@ -50,6 +72,9 @@ runs:
 
     - name: Download Flyway CLI
       shell: pwsh
+      env:
+        FLWY_RETRY_COUNT: ${{ inputs.retry-count }}
+        FLWY_RETRY_DELAY_SECONDS: ${{ inputs.retry-delay-seconds }}
       run: |
         $fileName = $env:flwy_filename
         $url = "https://download.red-gate.com/maven/release/com/redgate/flyway/flyway-commandline/$($env:flwy_version)/$fileName"
@@ -61,11 +86,27 @@ runs:
 
         $outFile = Join-Path $tempPath $fileName
 
-        try {
-          Invoke-WebRequest -Uri $url -OutFile $outFile
-          Write-Host "Downloaded Flyway CLI to $outFile."
-        } catch {
-          Write-Error "Failed to download Flyway CLI: $_"
+        $maxAttempts = [int]$env:FLWY_RETRY_COUNT
+        $delaySeconds = [int]$env:FLWY_RETRY_DELAY_SECONDS
+        $attempt = 0
+        $success = $false
+
+        do {
+          $attempt++
+          try {
+            Invoke-WebRequest -Uri $url -OutFile $outFile
+            Write-Host "Downloaded Flyway CLI to $outFile."
+            $success = $true
+          } catch {
+            Write-Warning "Attempt $attempt of $maxAttempts to download Flyway CLI failed: $_"
+            if ($attempt -lt $maxAttempts) {
+              Start-Sleep -Seconds $delaySeconds
+            }
+          }
+        } while (-not $success -and $attempt -lt $maxAttempts)
+
+        if (-not $success) {
+          Write-Error "Failed to download Flyway CLI after $maxAttempts attempts."
           exit 1
         }
 
@@ -106,8 +147,20 @@ runs:
           Write-Host "Extracted Flyway CLI to $installDir."
           Expand-Archive -Path $outFile -DestinationPath $installDir -Force
 
+          # The archive contains its own top-level flyway-<version> folder,
+          # so flyway.cmd is not directly at $installDir's root — find it,
+          # the same way the Linux branch above locates its executable.
+          $flywayCmd = Get-ChildItem -Path $installDir -Recurse -Filter flyway.cmd | Select-Object -First 1
+
+          if (-not $flywayCmd) {
+            Write-Error "Could not find flyway.cmd after extraction."
+            exit 1
+          }
+
+          $flywayBinDir = $flywayCmd.DirectoryName
+
           # Add the Flyway CLI to the PATH environment variable
-          $result = . ${{GITHUB.ACTION_PATH}}/scripts/Update-EnvPathVariable.ps1 -InstallDir $installDir
+          $result = . ${{GITHUB.ACTION_PATH}}/scripts/Update-EnvPathVariable.ps1 -FlywayInstallDirectory $flywayBinDir
 
           # Check if the PATH variable was updated successfully
           if ($result) {
@@ -116,6 +169,12 @@ runs:
             Write-Error "Failed to add Flyway CLI to PATH."
             exit 1
           }
+
+          # The registry-level PATH update above does not propagate to later
+          # steps in this job (each step is a fresh process on the runner).
+          # Appending to GITHUB_PATH is what GitHub Actions actually honors
+          # for making a directory available to subsequent steps.
+          Add-Content -Path $env:GITHUB_PATH -Value $flywayBinDir
         }
 
         # Set the Flyway environment variables
@@ -143,9 +202,18 @@ runs:
         # Validate Flyway installation
         try {
             $flywayVersionOutput = flyway -v 2>&1
+            Write-Host "flyway -v output:"
+            $flywayVersionOutput | ForEach-Object { Write-Host "  $_" }
+            Write-Host "flyway -v exit code: $LASTEXITCODE"
+
             if ($LASTEXITCODE -eq 0) {
+                # -match against an array only returns the matching elements
+                # and does NOT populate $matches; join to a single string
+                # first so the capture groups below are actually available.
+                $flywayVersionText = $flywayVersionOutput -join "`n"
+
                 # Extract the version number using regex
-                if ($flywayVersionOutput -match 'Flyway (Community|Pro|Enterprise|Teams) Edition ([0-9]+\.[0-9]+\.[0-9]+)') {
+                if ($flywayVersionText -match 'Flyway (Community|Pro|Enterprise|Teams) Edition ([0-9]+\.[0-9]+\.[0-9]+)') {
                     $edition = $matches[1]
                     $version = $matches[2]
                     Write-Host "Flyway is successfully installed and running version $version ($edition Edition)."
@@ -153,11 +221,11 @@ runs:
                     Write-Host "Flyway is installed, but could not parse version information."
                 }
             } else {
-                Write-Error "Flyway installation failed. Please check for issues."
+                Write-Error "Flyway installation failed with exit code $LASTEXITCODE. See output above for details."
                 exit 1
             }
         } catch {
-            Write-Error "Flyway installation failed. Please check for issues."
+            Write-Error "Flyway installation failed with an exception: $($_.Exception.GetType().FullName): $($_.Exception.Message)"
             exit 1
         }
 
