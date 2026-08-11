@@ -14,7 +14,7 @@ Supports both Linux and Windows environments.
 
 ```yaml
 - name: Install Flyway CLI
-  uses: sanderstad/FlywayCLIInstaller@v0.1
+  uses: sanderstad/FlywayCLIInstaller@v1
   with:
     version: 'latest' # or specify a version, e.g. '11.8.2'
 ```
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install Flyway CLI
-        uses: sanderstad/FlywayCLIInstaller@v0.1
+        uses: sanderstad/FlywayCLIInstaller@v1
         with:
           version: 'latest'
 ```
@@ -50,6 +50,19 @@ jobs:
 5. **Validates** the installation by running the version command.
 
 Network calls to Red Gate's download server (both the version-metadata lookup and the archive download) are retried up to `retry-count` times, `retry-delay-seconds` apart, before the action fails. This helps with intermittent `403` responses from the server.
+
+## Releases
+
+Every push to `main` is automatically versioned and released — no manual tagging. The version bump is determined from commit messages since the last release, following [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `fix: ...` → patch release (e.g. `v1.0.0` → `v1.0.1`)
+- `feat: ...` → minor release (e.g. `v1.0.1` → `v1.1.0`)
+- `feat!: ...`, `fix!: ...`, or a `BREAKING CHANGE:` footer → major release (e.g. `v1.1.0` → `v2.0.0`)
+- Anything else (`chore:`, `docs:`, `ci:`, etc.) does not trigger a release on its own
+
+This repo merges pull requests via squash merge, so the PR title becomes the commit message that gets classified — use a Conventional Commits prefix in your PR title.
+
+Each release also moves a floating major-version tag (e.g. `v1`) to point at the latest release in that major line, so `uses: sanderstad/FlywayCLIInstaller@v1` always tracks the newest compatible release. Pin an exact `vX.Y.Z` tag instead if you need a fully immutable reference.
 
 ## Notes
 
