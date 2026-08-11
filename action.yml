@@ -74,11 +74,27 @@ runs:
 
         $outFile = Join-Path $tempPath $fileName
 
-        try {
-          Invoke-WebRequest -Uri $url -OutFile $outFile
-          Write-Host "Downloaded Flyway CLI to $outFile."
-        } catch {
-          Write-Error "Failed to download Flyway CLI: $_"
+        $maxAttempts = [int]"${{ inputs.retry-count }}"
+        $delaySeconds = [int]"${{ inputs.retry-delay-seconds }}"
+        $attempt = 0
+        $success = $false
+
+        do {
+          $attempt++
+          try {
+            Invoke-WebRequest -Uri $url -OutFile $outFile
+            Write-Host "Downloaded Flyway CLI to $outFile."
+            $success = $true
+          } catch {
+            Write-Warning "Attempt $attempt of $maxAttempts to download Flyway CLI failed: $_"
+            if ($attempt -lt $maxAttempts) {
+              Start-Sleep -Seconds $delaySeconds
+            }
+          }
+        } while (-not $success -and $attempt -lt $maxAttempts)
+
+        if (-not $success) {
+          Write-Error "Failed to download Flyway CLI after $maxAttempts attempts."
           exit 1
         }
 
