@@ -58,3 +58,7 @@ if ($updateResult) {
 else {
     Write-Host "Failed to update PATH variable."
 }
+
+# Emit the result so callers dot-sourcing this script (e.g. `$result = . script.ps1`)
+# can capture it — Write-Host output is not captured by dot-sourcing.
+$updateResult
