@@ -202,6 +202,10 @@ runs:
         # Validate Flyway installation
         try {
             $flywayVersionOutput = flyway -v 2>&1
+            Write-Host "flyway -v output:"
+            $flywayVersionOutput | ForEach-Object { Write-Host "  $_" }
+            Write-Host "flyway -v exit code: $LASTEXITCODE"
+
             if ($LASTEXITCODE -eq 0) {
                 # Extract the version number using regex
                 if ($flywayVersionOutput -match 'Flyway (Community|Pro|Enterprise|Teams) Edition ([0-9]+\.[0-9]+\.[0-9]+)') {
@@ -212,11 +216,11 @@ runs:
                     Write-Host "Flyway is installed, but could not parse version information."
                 }
             } else {
-                Write-Error "Flyway installation failed. Please check for issues."
+                Write-Error "Flyway installation failed with exit code $LASTEXITCODE. See output above for details."
                 exit 1
             }
         } catch {
-            Write-Error "Flyway installation failed. Please check for issues."
+            Write-Error "Flyway installation failed with an exception: $($_.Exception.GetType().FullName): $($_.Exception.Message)"
             exit 1
         }
 
