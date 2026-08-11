@@ -10,6 +10,14 @@ inputs:
     description: 'The version of Flyway to install'
     required: false
     default: 'latest'
+  retry-count:
+    description: 'Number of attempts for network calls to Red Gate (metadata fetch and CLI download) before failing'
+    required: false
+    default: '3'
+  retry-delay-seconds:
+    description: 'Delay in seconds between retry attempts for network calls'
+    required: false
+    default: '5'
 
 runs:
   using: 'composite'
@@ -19,7 +27,12 @@ runs:
       run: |
         #gci ${{GITHUB.ACTION_PATH}} -recurse -bla
 
-        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1
+        $flywayInfo = . ${{GITHUB.ACTION_PATH}}/scripts/Get-LatestFlywayCLIVersion.ps1 -RetryCount ${{ inputs.retry-count }} -RetryDelaySeconds ${{ inputs.retry-delay-seconds }}
+
+        if ($null -eq $flywayInfo) {
+          Write-Error "Failed to retrieve Flyway CLI version information after ${{ inputs.retry-count }} attempts."
+          exit 1
+        }
 
         $flywayInfo
 
