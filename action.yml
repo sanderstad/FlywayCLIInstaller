@@ -157,6 +157,12 @@ runs:
             Write-Error "Failed to add Flyway CLI to PATH."
             exit 1
           }
+
+          # The registry-level PATH update above does not propagate to later
+          # steps in this job (each step is a fresh process on the runner).
+          # Appending to GITHUB_PATH is what GitHub Actions actually honors
+          # for making a directory available to subsequent steps.
+          Add-Content -Path $env:GITHUB_PATH -Value $installDir
         }
 
         # Set the Flyway environment variables
